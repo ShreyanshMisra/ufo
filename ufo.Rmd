@@ -1,6 +1,6 @@
 ---
 title: "Exploratory Analysis of UFO Sightings from NUFORC Dataset"
-author: "Shreyansh Misra"
+author: "Shreyansh Misra, Laurence Meng"
 date: "2024-11-20"
 output:
   pdf_document:
