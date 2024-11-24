@@ -1,0 +1,21 @@
+---
+title: "Exploratory Analysis of UFO Sightings from NUFORC Dataset"
+author: "Shreyansh Misra"
+date: "2024-11-20"
+output:
+  pdf_document:
+    number_sections: true
+---
+The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) and unidentified aerial phenomenon (UAP) sighting reports available on the internet.
+
+```{r}
+ufo.data <- read.csv("complete.csv")
+
+# set up factors
+```
+
+
+
+
+
+```
