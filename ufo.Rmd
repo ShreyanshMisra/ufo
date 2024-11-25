@@ -1,21 +1,154 @@
 ---
 title: "Exploratory Analysis of UFO Sightings from NUFORC Dataset"
-author: "Shreyansh Misra, Laurence Meng"
+author: "Shreyansh Misra, Lawrence Meng"
 date: "2024-11-20"
 output:
   pdf_document:
     number_sections: true
 ---
-The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) and unidentified aerial phenomenon (UAP) sighting reports available on the internet.
+```{r echo=FALSE, include=FALSE}
+library(cluster)
+library(ggplot2)
+library(caret)
+library(mclust)
+library(forecast)
+library(tseries)
+library(knitr)
+library(dplyr)
+```
+The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) and unidentified aerial phenomenon (UAP) sighting reports available on the internet. This project explores patterns and trends in UFO sightings to address the following questions:
+1. **Where are UFOs most likely to be sighted?** Are they concentrated in specific countries, near landmarks, or certain distances from the equator?  
+2. **When are UFOs most likely to be sighted?** Are sightings tied to specific seasons, holidays, or days of the week?  
+3. **What are the most common UFO descriptions?** What shapes, patterns, and accounts are commonly reported?  
+
+## Data
+### Overview
+The dataset comprises UFO sighting reports, with variables detailing locations, times, descriptions, and other relevant information.
+
+#### Variables
+- **Datetime**: When the sighting occurred.
+- **City/State/Country**: The geographical location of the sighting.
+- **Shape**: Reported shape of the UFO (e.g., "disk," "sphere", "fireball", "light", etc.).
+- **Duration (seconds)**: Length of the sighting.
+- **Latitude/Longitude**: Geographic coordinates of the sighting.
+- **Comments**: Textual eyewitness accounts.
+
+### Variables of Interest
+- **Datetime**
+- **City/State/Country**
+- **Shape**
+- **Latitude/Longitude**
+Analysis of these variables will help us answer the question: When and where do different kinds of UFOs, in terms of shape, appear?
 
 ```{r}
-ufo.data <- read.csv("complete.csv")
+# Load data
+ufo.data <- read.csv("scrubbed.csv")
 
-# set up factors
+# Replace empty strings with "Unknown" in the state column
+ufo.data$state <- ifelse(ufo.data$state == "", "Unknown", ufo.data$state)
+
+# Recalculate state frequencies
+state.freq <- table(ufo.data$state)
+
+# Exclude "Unknown" from the top 10
+state.freq <- state.freq[names(state.freq) != "Unknown"]
+top_states <- sort(state.freq, decreasing = TRUE)[1:10]
+
+# Bar plot for top states
+barplot(top_states,
+        main = "Top 10 US States by UFO Sightings (Excluding Unknown)",
+        col = "blue",
+        xlab = "State",
+        ylab = "Number of Sightings")
+
+```
+```{r}
+# Converting the datetime column to a easy-to-read date format
+ufo.data$datetime <- as.Date(ufo.data$datetime, format = "%m/%d/%Y")
+
+# Checking the range of dates
+range(ufo.data$datetime)
+
+#Filtering the range of dates to have recent data
+ufo.filtered <- ufo.data %>%
+  filter(datetime >= as.Date("1990-01-01") & datetime <= as.Date("2014-05-01"))
+
+# Verifying the filtered date range
+range(ufo.filtered$datetime)
+``` 
+
+```{r}
+# Creating a year-month column
+ufo.filtered$year_month <- format(ufo.filtered$datetime, "%Y-%m")
+
+# Aggregating sightings by year-month
+ufo.monthly <- ufo.filtered %>%
+  group_by(year_month) %>%
+  summarize(sightings = n())
+
+# Converting year-month to Date type for plotting
+ufo.monthly$date <- as.Date(paste0(ufo.monthly$year_month, "-01"))
+
+
 ```
 
+```{r}
+# Create a time series object
+ufo.ts <- ts(
+  ufo.monthly$sightings,
+  frequency = 12, # Monthly frequency
+  start = c(as.numeric(format(min(ufo.monthly$date), "%Y")),
+            as.numeric(format(min(ufo.monthly$date), "%m")))
+)
 
+# Plotting the time series
+autoplot(ufo.ts) +
+  labs(title = "Monthly UFO Sightings (1990-2014)", x = "Year", y = "Sightings") +
+  theme_minimal()
 
 
 
 ```
+
+```{r}
+# Decomposing the time series
+ufo.decomp <- decompose(ufo.ts)
+
+# Plotting the decomposed time series
+autoplot(ufo.decomp) +
+  labs(title = "Decomposition of Monthly UFO Sightings") +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+# Augmented Dickey-Fuller Test
+adf.test(ufo.ts)
+
+# KPSS Test
+kpss.test(ufo.ts)
+```
+For the ADF test, the p-value is very small, so the null hypothesis is rejected, and the time series is stationary.
+
+For the KPSS test, the p-value is very small, so the null hypothesis is rejected, and the time series is not stationary.
+
+These two are contradicting, so we apply differencing.
+
+```{r}
+# Differencing the time series
+ndiffs(ufo.ts)
+ufo.ts.diff <- diff(ufo.ts, differences = 1)
+
+# ADF test
+adf.test(ufo.ts.diff)
+
+# KPSS test
+kpss.test(ufo.ts.diff)
+
+```
+Now, the time series is stationary. 
+
+
+
