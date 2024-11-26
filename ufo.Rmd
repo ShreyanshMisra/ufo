@@ -1,12 +1,12 @@
 ---
 title: "Exploratory Analysis of UFO Sightings from NUFORC Dataset"
 author: "Shreyansh Misra, Lawrence Meng"
-date: "2024-11-20"
+date: "2024-11-25"
 output:
   pdf_document:
     number_sections: true
 ---
-```{r echo=FALSE, include=FALSE}
+```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
 library(cluster)
 library(ggplot2)
 library(caret)
@@ -16,52 +16,69 @@ library(tseries)
 library(knitr)
 library(dplyr)
 ```
-The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) and unidentified aerial phenomenon (UAP) sighting reports available on the internet. This project explores patterns and trends in UFO sightings to address the following questions:
+
+The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) and unidentified aerial phenomenon (UAP) sighting reports available on the internet. This investigation aimed to uncover trends and patterns in UFO sightings by addressing three primary questions: 
+
 1. **Where are UFOs most likely to be sighted?** Are they concentrated in specific countries, near landmarks, or certain distances from the equator?  
 2. **When are UFOs most likely to be sighted?** Are sightings tied to specific seasons, holidays, or days of the week?  
 3. **What are the most common UFO descriptions?** What shapes, patterns, and accounts are commonly reported?  
 
-## Data
+## Data Preperation
 ### Overview
-The dataset comprises UFO sighting reports, with variables detailing locations, times, descriptions, and other relevant information.
+
+```{r}
+ufo.data <- read.csv("scrubbed.csv")
+```
+
+The dataset contains 80,332 records of UFO sightings, with variables detailing sighting locations, times, and descriptions. 
 
 #### Variables
 - **Datetime**: When the sighting occurred.
 - **City/State/Country**: The geographical location of the sighting.
-- **Shape**: Reported shape of the UFO (e.g., "disk," "sphere", "fireball", "light", etc.).
+- **Shape**: Reported shape of the UFO.
 - **Duration (seconds)**: Length of the sighting.
 - **Latitude/Longitude**: Geographic coordinates of the sighting.
-- **Comments**: Textual eyewitness accounts.
+- **Comments**: Eyewitness accounts.
 
 ### Variables of Interest
 - **Datetime**
 - **City/State/Country**
-- **Shape**
 - **Latitude/Longitude**
-Analysis of these variables will help us answer the question: When and where do different kinds of UFOs, in terms of shape, appear?
+- **Shape**
+
+Analyzing these variables will help us answer the questions: When do UFO sightings take place, where are they most frequency, and what are the most common descriptions?
+
+
+### Number of Sightings by Country
 
 ```{r}
-# Load data
-ufo.data <- read.csv("scrubbed.csv")
+country.freq <- table(ufo.data$country)
+country.freq <- sort(country.freq, decreasing = TRUE)
 
-# Replace empty strings with "Unknown" in the state column
-ufo.data$state <- ifelse(ufo.data$state == "", "Unknown", ufo.data$state)
+barplot(country.freq,
+        main = "Countries by UFO Sightings",
+        col = "lightblue",
+        xlab = "Country",
+        ylab = "Number of Sightings")
+```
+The United States overwhelmingly has the highest number of UFO Sightings reported, followed by Canada, Great Britain, Austrailia, and Germany. There are also a large number of reports where the country is left blank. The NUFORC being based in the United States is likely why most of their reports are from the United States. Since the sightings from outside the US are too few to come to reasonable conclusions with, we will only use sightings based in the United States for this investigation. 
 
-# Recalculate state frequencies
+```{r}
+# Remove non-US sightings from dataset
+ufo.data <- ufo.data[ufo.data$country == "us", ]
+
 state.freq <- table(ufo.data$state)
-
-# Exclude "Unknown" from the top 10
 state.freq <- state.freq[names(state.freq) != "Unknown"]
-top_states <- sort(state.freq, decreasing = TRUE)[1:10]
+state.freq <- sort(state.freq, decreasing = TRUE)[1:15]
 
-# Bar plot for top states
-barplot(top_states,
-        main = "Top 10 US States by UFO Sightings (Excluding Unknown)",
-        col = "blue",
+barplot(state.freq,
+        main = "US States by UFO Sightings",
+        col = "red",
         xlab = "State",
         ylab = "Number of Sightings")
-
 ```
+California had the most UFO sightings reported, followed by Washington, Flordia, Texas, and New York. It is significant to note that California, Texas, Florida, and New York are the four most populous states in that order.
+
 ```{r}
 # Converting the datetime column to a easy-to-read date format
 ufo.data$datetime <- as.Date(ufo.data$datetime, format = "%m/%d/%Y")
