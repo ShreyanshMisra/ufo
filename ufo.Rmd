@@ -123,10 +123,10 @@ range(ufo.data$datetime)
 
 ```{r}
 # Creating a year-month column
-ufo.filtered$year_month <- format(ufo.filtered$datetime, "%Y-%m")
+ufo.data$year_month <- format(ufo.data$datetime, "%Y-%m")
 
 # Aggregating sightings by year-month
-ufo.monthly <- ufo.filtered %>%
+ufo.monthly <- ufo.data %>%
   group_by(year_month) %>%
   summarize(sightings = n())
 
@@ -185,12 +185,55 @@ kpss.test(ufo.ts.diff)
 
 ```
 Now, the time series is stationary. 
+```{r}
+
+# Average model
+avg.fit.cv <- tsCV(ufo.ts, forecastfunction = meanf, h = 12)
+avg.err.vec <- avg.fit.cv[, 12]
+avg.rmse.cv <- sqrt(mean(avg.err.vec^2, na.rm = TRUE))
+
+# Snaive model
+rwf.fit.cv <- tsCV(ufo.ts, forecastfunction = snaive, h = 12)
+rwf.err.vec <- rwf.fit.cv[, 12]
+rwf.rmse.cv <- sqrt(mean(rwf.err.vec^2, na.rm = TRUE))
+```
+
+```{r}
+
+best.arima <- auto.arima(ufo.ts)
+arimaorder(best.arima)
+checkresiduals(best.arima)
+```
+
+The Ljung-Box test p-value is greater than 0.05, indicating no correlation in residual, thus indicating the model fits well.
+```{r}
+arima_fxn <- function(x, h) {
+  forecast(Arima(x, order = c(1, 0, 2), seasonal = c(0, 1, 1)), h = h)
+}
+arima.fit.cv <- tsCV(ufo.ts, forecastfunction = arima_fxn, h = 12)
+arima.err.vec <- arima.fit.cv[, 12]
+arima.rmse.cv <- sqrt(mean(arima.err.vec^2, na.rm = TRUE))
+```
+
+
+
+```{r}
+train <- window(ufo.ts, end = c(2012, 12))
+test <- window(ufo.ts, start = c(2013, 1))
+
+arima_model <- Arima(train, order = c(1, 0, 2), seasonal = c(0, 1, 1))
+forecasted <- forecast(arima_model, h = length(test))
+
+cv.err.data <- c(avg.rmse.cv, rwf.rmse.cv, arima.rmse.cv)
+cv.mat <- matrix(cv.err.data, nrow = 3, ncol = 1, byrow = TRUE)
+rownames(cv.mat) <- c("Average", "Seasonal Naive", "ARIMA")
+colnames(cv.mat) <- c("RMSE")
+
+kable(cv.mat, caption = "Cross-Validation RMSE for Models")
+```
+Comparing the RMSE across models, the ARIMA model outperforms both the Average and Seasonal Naive models on the test data.
+
 
 ## References
 - https://nuforc.org/databank/
 - https://www.geeksforgeeks.org/how-to-sort-a-dataframe-by-date-in-r/
-
-
-
-
-
