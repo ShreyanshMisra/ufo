@@ -26,3 +26,8 @@ The National UFO Reporting Center Online Database
 ## Graphs
 - Maps
 - Bar Charts and Line Graphs
+
+# Next Steps
+- Separate Time Series Analysis and the actual Time Series stuff
+- Specific Days with high UFO sightings, specific months with high UFO sightings
+- Our actual "prediction" is going to be a logistic regression model that uses all of these factors to predict the next "UFO sightings"
