@@ -1,7 +1,7 @@
 ---
 title: "Exploratory Analysis of UFO Sightings from NUFORC Dataset"
 author: "Shreyansh Misra, Lawrence Meng"
-date: "2024-11-25"
+date: "2024-12-2"
 output:
   pdf_document:
     number_sections: true
@@ -23,8 +23,8 @@ The NUFORC Databank is the largest independently collected set of unidentified f
 2. **When are UFOs most likely to be sighted?** Are sightings tied to specific seasons, holidays, or days of the week?  
 3. **What are the most common UFO descriptions?** What shapes, patterns, and accounts are commonly reported?  
 
-## Data Preperation
-### Overview
+# Data Preperation
+## Overview
 
 ```{r}
 ufo.data <- read.csv("scrubbed.csv")
@@ -32,7 +32,7 @@ ufo.data <- read.csv("scrubbed.csv")
 
 The dataset contains 80,332 records of UFO sightings, with variables detailing sighting locations, times, and descriptions. 
 
-#### Variables
+## Variables
 - **Datetime**: When the sighting occurred.
 - **City/State/Country**: The geographical location of the sighting.
 - **Shape**: Reported shape of the UFO.
@@ -48,8 +48,8 @@ The dataset contains 80,332 records of UFO sightings, with variables detailing s
 
 Analyzing these variables will help us answer the questions: When do UFO sightings take place, where are they most frequency, and what are the most common descriptions?
 
-
-### Analyzing Location
+# Exploratory Analysis
+## Analyzing Location
 
 ```{r}
 country.freq <- table(ufo.data$country)
@@ -61,7 +61,7 @@ barplot(country.freq,
         xlab = "Country",
         ylab = "Number of Sightings")
 ```
-The United States overwhelmingly has the highest number of UFO Sightings reported, followed by Canada, Great Britain, Austrailia, and Germany. There are also a large number of reports where the country is left blank. The NUFORC being based in the United States is likely why most of their reports are from the United States. Since the sightings from outside the US are too few to come to reasonable conclusions with, we will only use sightings based in the United States for this investigation. 
+The United States overwhelmingly has the highest number of UFO Sightings reported, followed by Canada, Great Britain, Australia, and Germany. There are also a large number of reports where the country is left blank. The NUFORC being based in the United States is likely why most of their reports are from the United States. Since the sightings from outside the US are too few to come to reasonable conclusions with, we will only use sightings based in the United States for this investigation. 
 
 ```{r}
 # Remove non-US sightings from dataset
@@ -79,9 +79,9 @@ barplot(state.freq,
 ```
 California had the most UFO sightings reported, followed by Washington, Flordia, Texas, and New York. It is significant to note that California, Texas, Florida, and New York are the four most populous states in that order.
 
-### Analyzing Descriptions
+## Analyzing Descriptions
 
-There were 29 different shapes that people reported that the UFO looked like. 
+There were 29 different "shapes" that the NUFORC Databank classified each UFO sighting into. People reported what UFO looked like and it was grouped into a category based on their descriptions. While they are labelled as "shapes" in the dataset, a more accurate way to define the data column would be "descriptions" of UFOs. This is because some data points include "fireball", "light", "flash", and "flare", which are good descriptions of what the UFO would have looked like but are not explicitly shapes.
 
 ```{r}
 ufo.data$shape <- factor(ufo.data$shape, levels = unique(ufo.data$shape))
@@ -98,17 +98,17 @@ shape.freq <- sort(shape.freq, decreasing = TRUE)[1:5]
 barplot(
   shape.freq,
   col = "pink",
-  main = "Distribution of UFO Shapes",
-  xlab = "UFO Shape",
+  main = "Distribution of UFO Descriptions",
+  xlab = "UFO Description",
   ylab = "Count"
 )
 ```
-The top five "shapes" of UFOs were light, triangle, circle, fireball, and unkown respectively. 
+The top five "descriptions" of UFOs were light, triangle, circle, fireball, and unkown respectively. 
 
 
-### Analyzing Time
+## Analyzing Time
 
-The dataset includes historical reports dating back to 1910. For the context of this investigation, we will be eliminating reports collected before 1990. 
+The dataset includes historical reports dating back to 1910. For the context of this investigation, we will be eliminating reports collected before 1990.
 
 ```{r}
 # Initial Range
@@ -185,55 +185,13 @@ kpss.test(ufo.ts.diff)
 
 ```
 Now, the time series is stationary. 
-```{r}
-
-# Average model
-avg.fit.cv <- tsCV(ufo.ts, forecastfunction = meanf, h = 12)
-avg.err.vec <- avg.fit.cv[, 12]
-avg.rmse.cv <- sqrt(mean(avg.err.vec^2, na.rm = TRUE))
-
-# Snaive model
-rwf.fit.cv <- tsCV(ufo.ts, forecastfunction = snaive, h = 12)
-rwf.err.vec <- rwf.fit.cv[, 12]
-rwf.rmse.cv <- sqrt(mean(rwf.err.vec^2, na.rm = TRUE))
-```
-
-```{r}
-
-best.arima <- auto.arima(ufo.ts)
-arimaorder(best.arima)
-checkresiduals(best.arima)
-```
-
-The Ljung-Box test p-value is greater than 0.05, indicating no correlation in residual, thus indicating the model fits well.
-```{r}
-arima_fxn <- function(x, h) {
-  forecast(Arima(x, order = c(1, 0, 2), seasonal = c(0, 1, 1)), h = h)
-}
-arima.fit.cv <- tsCV(ufo.ts, forecastfunction = arima_fxn, h = 12)
-arima.err.vec <- arima.fit.cv[, 12]
-arima.rmse.cv <- sqrt(mean(arima.err.vec^2, na.rm = TRUE))
-```
-
-
-
-```{r}
-train <- window(ufo.ts, end = c(2012, 12))
-test <- window(ufo.ts, start = c(2013, 1))
-
-arima_model <- Arima(train, order = c(1, 0, 2), seasonal = c(0, 1, 1))
-forecasted <- forecast(arima_model, h = length(test))
-
-cv.err.data <- c(avg.rmse.cv, rwf.rmse.cv, arima.rmse.cv)
-cv.mat <- matrix(cv.err.data, nrow = 3, ncol = 1, byrow = TRUE)
-rownames(cv.mat) <- c("Average", "Seasonal Naive", "ARIMA")
-colnames(cv.mat) <- c("RMSE")
-
-kable(cv.mat, caption = "Cross-Validation RMSE for Models")
-```
-Comparing the RMSE across models, the ARIMA model outperforms both the Average and Seasonal Naive models on the test data.
 
 
 ## References
 - https://nuforc.org/databank/
 - https://www.geeksforgeeks.org/how-to-sort-a-dataframe-by-date-in-r/
+
+
+
+
+
