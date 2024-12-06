@@ -28,6 +28,8 @@ The NUFORC Databank is the largest independently collected set of unidentified f
 
 ```{r}
 ufo.data <- read.csv("scrubbed.csv")
+
+ufo.data[1, ]
 ```
 
 The dataset contains 80,332 records of UFO sightings, with variables detailing sighting locations, times, and descriptions. 
@@ -64,9 +66,10 @@ barplot(country.freq,
 The United States overwhelmingly has the highest number of UFO Sightings reported, followed by Canada, Great Britain, Australia, and Germany. There are also a large number of reports where the country is left blank. The NUFORC being based in the United States is likely why most of their reports are from the United States. Since the sightings from outside the US are too few to come to reasonable conclusions with, we will only use sightings based in the United States for this investigation. 
 
 ```{r}
-# Remove non-US sightings from dataset
 ufo.data <- ufo.data[ufo.data$country == "us", ]
+```
 
+```{r}
 state.freq <- table(ufo.data$state)
 state.freq <- state.freq[names(state.freq) != "Unknown"]
 state.freq <- sort(state.freq, decreasing = TRUE)[1:15]
@@ -122,6 +125,83 @@ range(ufo.data$datetime)
 ```
 
 ```{r}
+# Months
+month.data <- ufo.data %>%
+  mutate(month = format(datetime, "%B"))
+
+month_counts <- month.data %>%
+  group_by(month) %>%
+  summarise(sightings = n()) %>%
+  arrange(match(month, month.name))
+
+sightings <- month_counts$sightings
+months <- month_counts$month
+
+barplot(
+  height = sightings,
+  names.arg = months,
+  main = "UFO Sightings by Month",
+  col = "skyblue",
+  xlab = "Month",
+  ylab = "Number of Sightings",
+  las = 2
+)
+```
+```{r}
+# Days
+day.data <- ufo.data %>%
+  mutate(day = weekdays(datetime))
+
+day_counts <- day.data %>%
+  group_by(day) %>%
+  summarise(sightings = n()) %>%
+  arrange(match(day, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))
+
+sightings <- day_counts$sightings
+days <- day_counts$day
+
+barplot(
+  height = sightings,
+  names.arg = days,
+  main = "UFO Sightings by Weekday",
+  col = "lightgreen",
+  xlab = "Days",
+  ylab = "Number of Sightings",
+  las = 2
+)
+```
+
+
+```{r}
+# Dates
+date.data <- ufo.data %>%
+  mutate(
+    date = format(datetime, "%m-%d")
+  )
+
+date_counts <- date.data %>%
+  group_by(date) %>%
+  summarise(sightings = n()) %>%
+  arrange(desc(sightings)) %>%
+  slice_max(order_by = sightings, n = 10)
+
+sightings <- date_counts$sightings
+dates <- date_counts$date
+
+barplot(
+  height = sightings,
+  names.arg = dates,
+  main = "Top 10 Calendar Dates with UFO Sightings",
+  col = "pink",
+  xlab = "Dates",
+  ylab = "Number of Sightings",
+  las = 2
+)
+```
+
+
+
+```{r}
 # Creating a year-month column
 ufo.data$year_month <- format(ufo.data$datetime, "%Y-%m")
 
@@ -149,6 +229,9 @@ autoplot(ufo.ts) +
   theme_minimal()
 ```
 
+We observe an upward trent in UFO sightings reported. 
+
+
 ```{r}
 # Decomposing the time series
 ufo.decomp <- decompose(ufo.ts)
@@ -158,6 +241,11 @@ autoplot(ufo.decomp) +
   labs(title = "Decomposition of Monthly UFO Sightings") +
   theme_minimal()
 ```
+
+
+
+
+
 
 ```{r}
 # Augmented Dickey-Fuller Test
@@ -186,8 +274,15 @@ kpss.test(ufo.ts.diff)
 ```
 Now, the time series is stationary. 
 
+# Predictive Analysis
+```{r}
 
-## References
+
+```
+
+
+
+# References
 - https://nuforc.org/databank/
 - https://www.geeksforgeeks.org/how-to-sort-a-dataframe-by-date-in-r/
 
