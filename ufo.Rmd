@@ -1,7 +1,7 @@
 ---
 title: "Using Historical Reports of UFO Sightings from NUFORC Dataset to Predict Future Sighting Trends"
 author: "Shreyansh Misra, Lawrence Meng"
-date: "2024-12-9"
+date: "2024-12-10"
 output:
   pdf_document:
     number_sections: true
@@ -18,13 +18,13 @@ library(dplyr)
 library(maps)
 ```
 
-The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) sighting reports available on the internet. This investigation aimed to uncover trends and patterns in UFO sightings by addressing three primary questions: 
+The NUFORC Databank is the largest independently collected set of unidentified flying object (UFO) sighting reports available on the internet. This analysis aims to uncover trends in UFO sightings by addressing three key questions:
 
-1. **Where are UFOs most likely to be sighted?** Are they concentrated in specific countries or states?
-2. **When are UFOs most likely to be sighted?** Are sightings tied to specific months or dates?
-3. **What are the most common UFO descriptions?** What shapes are commonly reported?
+1. **Where are UFO sightings most frequent?** Are they concentrated in specific countries or states?
+2. **When are UFO sightings most likely to occur?** Are they influenced by seasonal patterns?
+3. **What are the most commonly reported UFO descriptions?** What shapes stand out in accounts?
 
-By analyzing these aspects of UFO sighting reports, we can use the trends that we find in order to predict the location, timing, and descriptions of future UFO sightings. We aim to use a Time Series Forecasting model along with a Regression Model in order to carry out our predictive analysis.
+By investigating these questions, we aim to identify trends in UFO sighting reports. Furthermore, we aim to use predictive models like time series to forecast future sightings. This approach will not only highlight historical patterns but will also help us anticapate future occurrences of UFO sightings.
 
 # Data Preperation
 ## Overview
@@ -33,22 +33,23 @@ By analyzing these aspects of UFO sighting reports, we can use the trends that w
 ufo.data <- read.csv("scrubbed.csv")
 ```
 
-The dataset contains 80,332 records of UFO sightings, with variables detailing sighting locations, times, and descriptions. There are minimal missing variables as the NUFORC omits them from the dataset if there is not enough information. However, there are still some missing values that we adress on a case by case basis in the analysis section. It is also difficult to gauge outliers in this investigation since we are not assesing the accuracy of the reports, and are simply looking to find trends within them.
+The dataset contains 80,332 records of UFO sightings, each providing information on the location, timing, and characteristics of the sighting. While the dataset excludes records with insufficient information, some variables still contain missing values. These gaps are addressed on a case-by-case basis during our analysis. We also exclude outlier detection from this investigation as our goal is not to validate the accuracy of reports but to identify trends and patterns across the dataset.
 
 ## Variables
-- **Datetime**: Date and Time of the sighting. 
-- **City/State/Country**: City, State, and Country of Sighting (eg. ashburn, nc, us).
-- **Shape**: Reported shape of the UFO (levels discussed in Analyzing Descriptions).
-- **Duration (seconds)**: Length of the sighting.
-- **Latitude/Longitude**: Geographic coordinates of the sighting.
-- **Comments**: Eyewitness accounts.
+- **Datetime**: date and time of each sighting.
+- **City/State/Country**: location of the sighting, given by city, state, and country.
+- **Shape**: shape of the UFO, categorized into multiple levels (explored in Analyzing Descriptions).
+- **Duration (seconds)**: length of time the UFO was observed.
+- **Latitude/Longitude**: geographic coordinates of the sighting.
+- **Comments**: free-text eyewitness accounts.
 
 ### Variables of Interest
 - **Datetime**
-- **City/State/Country**
+- **City/State/Country**: 
 - **Shape**
 
-Analyzing these variables will help us answer the questions: When do UFO sightings take place, where are they most frequent, and what are the most common descriptions?
+These variables are essential to answering the core questions of this investigation.
+
 
 # Exploratory Analysis
 ## Analyzing Location
@@ -151,7 +152,7 @@ barplot(
   cex.names = 0.7
 )
 ```
-July, August, September, and October have the highest number of sightings. 
+July, August, September, and October have the highest number of UFO sightings. These months likely coincide with increased outdoor activity due to favorable weather conditions in many regions. For example, summer and early fall months are popular for outdoor gatherings, vacations, and celebrations, which may increase the likelihood of spotting UFOs or mistaking a flying object for a UFO. 
 
 ```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="Distribution of UFO Sightings by Weekday"}
 # Days
@@ -177,7 +178,7 @@ barplot(
   cex.names = 0.6
 )
 ```
-The most UFOs are spotted on Saturdays, followed by Fridays and Sundays. 
+Saturdays have the highest number of sightings, with Fridays and Sundays following closely behind. This pattern aligns with increased leisure activities during weekends. People are more likely to be outdoors, socializing, or engaging in nighttime activities during these days, potentially explaining the surge in sightings.
 
 
 ```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="Top 10 Calendar Dates with UFO Sightings"}
@@ -207,15 +208,21 @@ barplot(
   cex.names = 0.8
 )
 ```
+The dates with the most UFO sightings across the 24 year period observed are:
 
-The dates with the most UFO sightings across the 24 year period observed are the 4th of July, 1st of January, and the 15th of Auugust. The first two of these dates are days of festivities in the United States, namely the 4th of July (Independence Day) and New Years Day. These two days are also associated with high levels of alcohol consumption, which could explain the stark increase in the number of sightings on those days. Furthermore, it makes sense that the 4th of July has any more sightings than on New Years Day since people tend to spend the 4th of July outdoors. 
+- **4th of July**: U.S. Independence Day.
+- **1st of January**: New Year's Day.
+- **15th of August**: A mid-summer date with unknown specific cultural or historical significance.
 
-This also puts the other observations into context. July, August, September, and October have the highest number of sightings since people are more likely to be outdoors during the evenings on those days. Furthermore, people are more likely to be drinking during the weekends, especially on Saturdays and Fridays, which explains the increase in the number of sightings on those weekdays.
+The 4th of July and New Year's Day are associated with large public gatherings, fireworks, and increased alcohol consumption, all of which could contribute to more frequent sightings. We also notice that prevalence of sightings in July through October aligns with seasons where outdoor nighttime activities are common. Furthermore, sightings peaking on Saturdays and Fridays could reflect the combined effect of leisure time and increased alcohol consumption, which might lead to more reports. 
+
+Alcohol consumption in particular could lead to the misinterpretation of ordinary events such as fireworks, airplanes, skyscrapers, or shooting stars, leading people to believe that they are UFOs and reporting their sightings.
+
 
 # Predictive Analysis
 
 ## Time Series
-From the exploratory analysis, time emerged as the primary predictor of UFO sightings, with clear evidence of seasonal patterns. A time series model is therefore an appropriate tool to forecast future sightings using the NUFORC dataset. The target variable is the monthly number of UFO sightings, aggregated by year and month. The dataset spans a range of dates, from "1990-01-03" to "2014-05-01", with a monthly frequency. The time series object created reflects these attributes, providing a structured basis for analysis.
+From the exploratory analysis, time emerged as the primary predictor of UFO sightings, with clear evidence of seasonal patterns. We selected a time series model as the best tool to forecast future sightings from the NUFORC dataset. The target variable is the monthly number of UFO sightings, aggregated by year and month. The dataset spans a 24 year period, from "1990-01-03" to "2014-05-01", which is aggregated to a monthly frequency. The time series model created reflects all of these attributes, providing a baseline for our predcitive analysis.
 
 ## Exploration
 ```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
@@ -248,18 +255,21 @@ autoplot(ufo.ts) +
 ```
 
 This plot reveals:
-- Long-term trends: Increasing overall trend in UFO sightings.
-- Seasonality: Regular patterns of higher activity in certain periods or months.
+
+- **Long-term trends**: Increasing overall trend in UFO sightings (multiplicative increase). 
+- **Seasonality**: Regular patterns of higher activity in certain periods or months.
 
 ## Model Fitting
 
 To forecast UFO sightings, we evaluated two models:
-- Benchmark Model: Mean forecast.
-- ARIMA Model: Captures trends, seasonality, and autocorrelations.
+
+- **Benchmark Model**: Mean forecast.
+- **ARIMA Model**: Captures trends, seasonality, and autocorrelations.
 
 The dataset was divided into training and test sets:
-- Training Set: Covers all data except the final 12 months.
-- Test Set: The last 12 months, reserved for model evaluation.
+
+- **Training Set**: Covers all data except the final 12 months.
+- **Test Set**: The last 12 months, reserved for model evaluation.
 
 ```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
 n <- length(ufo.ts)
@@ -286,7 +296,7 @@ adf.test(ufo.ts)
 kpss.test(ufo.ts)
 ```
 
-The ARIMA model captures complex temporal patterns, automatically adjusting for trends and seasonality. Differencing was applied to ensure stationarity, as confirmed by the Augmented Dickey-Fuller (ADF) and KPSS tests.
+The ARIMA (autoregressive integrated moving average) model captures additional patterns, automatically adjusting for trends and seasonality. Differencing was applied to ensure that the time series remained stationary, which we confirmed the need for after conducting the Augmented Dickey-Fuller (ADF) and KPSS tests.
 
 - **Augmented Dickey-Fuller (ADF) Test:** -7.0054
 - **KPSS Test:** 4.1877
@@ -298,6 +308,11 @@ autoplot(arima_forecast) +
   labs(title = "Monthly UFO Sightings ARIMA Forecast", x = "Year", y = "Sightings") +
   theme_minimal()
 ```
+
+Visually, we can already see a significant improvement in the ARIMA forecast as compared to the mean forecast.
+
+
+
 
 ## Model Comparison
 
@@ -325,29 +340,55 @@ kable(
 )
 ```
 
-The ARIMA model outperformed the benchmark model in both MAE and RMSE, demonstrating its ability to account for trends and seasonality.
+The ARIMA model sigificantly outperformed the benchmark model in both MAE and RMSE, demonstrating its ability to account for trends and seasonality. From our exploratory analysis, we were already aware that UFO sighting reports had clear trends and seasonality which made the ARIMA model a great choice for our predictive modelling. 
 
 ## Best Model Fit and Forecast
 
-The ARIMA model, selected for its superior performance, was refitted to the entire dataset. Predictions were generated for a 12-month forecast horizon.
+The ARIMA model, selected for its superior performance, was refitted to the entire dataset. Predictions were generated for a 36-month (3 year) forecast horizon.
 
 ```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="ARIMA Forecast for Future UFO Sightings"}
 final_arima <- auto.arima(ufo.ts)
-final_forecast <- forecast(final_arima, h = 12)
+final_forecast <- forecast(final_arima, h = 36)
 autoplot(final_forecast) +
   labs(title = "ARIMA Forecast for Future UFO Sightings", x = "Year", y = "Sightings") +
   theme_minimal()
 ```
+The forecast predicts that the upward trend in UFO sightings will continue, as seen in recent decades, although with much greater variability. The prediction interval, shaded in blue, highlights increasing uncertainty over time which is normal for long-term forecasting models. Seasonal fluctuations are still very evident in the forecast, which reflects the historical seasonality that we identified in the exploratory analysis, such as peaks during specific months.
 
+External factors like changes in reporting behavior, technological advancements, or sociocultural events might influence future sightings, potentially impacting the accuracy of the forecasting model. While the ARIMA model very effectively captures historical tends and creates a forecast, it assumes the continuation of historical trends and cannot account for unprecedented shifts in reporting patterns.
+
+
+# Conclusion
+
+## Summary of Results
+
+This investigation analyzed the NUFORC Databank to uncover trends in UFO sightings and predict future occurrences using predictive modeling techniques. By addressing key questions related to the timing, location, and descriptions of UFO sightings, we aimed to find patterns and generate forecasts for future observations.
+
+From our exploratory analysis, we noticed that UFO sightings are most frequent during the summer months and on specific dates such as the 4th of July and New Year’s Day. It confirmed that time was a primary predictor for changes in UFO sightings and that reports were seasonal, leading us to move forwards with a time series forecasting model. 
+
+We compared a mean forecast model and an ARIMA model in our model selection process, and ARIMA model proved most effective in capturing historical trends and seasonality. It demonstrated a steady upward trajectory in UFO sightings over the past two decades and forecasted a continuation of this trend over the next three years, albeit with increasing uncertainty.
+
+## Comparison of Results and Main Questions
+
+- Where are UFOs most likely to be sighted?
+UFO sightings are most concentrated in the United States, with regional patterns influenced by population and cultural factors.
+
+- When are UFOs most likely to occur?
+The observed patterns reveal a seasonal and weekly cycle, with sightings peaking in the summer months and on weekends.
+
+- What are the most common UFO descriptions?
+Observers frequently report simple, luminous shapes such as "light" or "circle".
+
+## Final Conclusion
+
+This investigation concludes that UFO sightings have geographic, seasonal, and descriptive trends. It also identified time as the primary predictor of UFO sightings, with the ARIMA model suggesting that sightings will continue to rise, reflecting the historical upward trend.
+
+However, it is important to acknowledge the limitations of this analysis. The dataset relies on self-reported observations, which certainly include biases and inaccuracies. Moreover, the models assume that past trends will continue to take place, which does not account for shifts in reporting behavior or any external influences. Future investigations could explore the impacts of external variables, such as changes media coverage or technological advancements, and their effects on UFO sighting reports.
+
+In summary, this study provides an analysis on UFO sighting trends and shares insights into the patterns that could predict future UFO sightings. 
 
 # References
 1. https://nuforc.org/databank/
-2. https://www.esd.whs.mil/Portals/54/Documents/FOID/Reading%20Room/UFOsandUAPs/2d_af_1.pdf
-3. https://attheu.utah.edu/facultystaff/the-west-is-best-to-spot-ufos/
-
-
-
-
-
-
-
+2. https://attheu.utah.edu/facultystaff/the-west-is-best-to-spot-ufos/
+3. https://www.skyatnightmagazine.com/space-science/things-mistaken-for-ufos
+4. https://a-little-book-of-r-for-time-series.readthedocs.io/en/latest/src/timeseries.html
