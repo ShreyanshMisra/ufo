@@ -212,22 +212,29 @@ The dates with the most UFO sightings across the 24 year period observed are the
 
 This also puts the other observations into context. July, August, September, and October have the highest number of sightings since people are more likely to be outdoors during the evenings on those days. Furthermore, people are more likely to be drinking during the weekends, especially on Saturdays and Fridays, which explains the increase in the number of sightings on those weekdays.
 
+# Predictive Analysis
 
+## Time Series
+From the exploratory analysis, time emerged as the primary predictor of UFO sightings, with clear evidence of seasonal patterns. A time series model is therefore an appropriate tool to forecast future sightings using the NUFORC dataset. The target variable is the monthly number of UFO sightings, aggregated by year and month. The dataset spans a range of dates, from "1990-01-03" to "2014-05-01", with a monthly frequency. The time series object created reflects these attributes, providing a structured basis for analysis.
+
+## Exploration
 ```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
-# Creating a year-month column
+# year-month column
 ufo.data$year_month <- format(ufo.data$datetime, "%Y-%m")
 
-# Aggregating sightings by year-month
+# Aggregations
 ufo.monthly <- ufo.data %>%
   group_by(year_month) %>%
   summarize(sightings = n())
 
-# Converting year-month to Date type for plotting
+# year-month -> Date
 ufo.monthly$date <- as.Date(paste0(ufo.monthly$year_month, "-01"))
 ```
 
-```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
-# Create a time series object
+We first processed the data to aggregate sightings by year and month, converting the datetime column into a monthly time series. Below is a plot of the time series, which shows trends, seasonality, and occasional spikes in sightings.
+
+```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="Monthly UFO Sightings (1990-2014)"}
+# Time Series Object
 ufo.ts <- ts(
   ufo.monthly$sightings,
   frequency = 12, # Monthly frequency
@@ -235,45 +242,108 @@ ufo.ts <- ts(
             as.numeric(format(min(ufo.monthly$date), "%m")))
 )
 
-# Plotting the time series
 autoplot(ufo.ts) +
   labs(title = "Monthly UFO Sightings (1990-2014)", x = "Year", y = "Sightings") +
   theme_minimal()
 ```
 
-```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
-# Decomposing the time series
-ufo.decomp <- decompose(ufo.ts)
+This plot reveals:
+- Long-term trends: Increasing overall trend in UFO sightings.
+- Seasonality: Regular patterns of higher activity in certain periods or months.
 
-# Plotting the decomposed time series
-autoplot(ufo.decomp) +
-  labs(title = "Decomposition of Monthly UFO Sightings") +
+## Model Fitting
+
+To forecast UFO sightings, we evaluated two models:
+- Benchmark Model: Mean forecast.
+- ARIMA Model: Captures trends, seasonality, and autocorrelations.
+
+The dataset was divided into training and test sets:
+- Training Set: Covers all data except the final 12 months.
+- Test Set: The last 12 months, reserved for model evaluation.
+
+```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
+n <- length(ufo.ts)
+train_ts <- window(ufo.ts, end = c(2013, 12))
+test_ts <- window(ufo.ts, start = c(2014, 1))
+```
+
+### Mean Forecast
+
+The mean forecast assumes future sightings will equal the historical mean of past data. This provides a simple baseline for comparison.
+
+```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="Monthly UFO Sightings Mean Forecast"}
+# Mean Model
+mean_model <- meanf(train_ts, h = 12)
+autoplot(mean_model) +
+  labs(title = "Monthly UFO Sightings Mean Forecast", x = "Year", y = "Sightings") +
+  theme_minimal()
+```
+
+### ARIMA Model
+
+```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
+adf.test(ufo.ts)
+kpss.test(ufo.ts)
+```
+
+The ARIMA model captures complex temporal patterns, automatically adjusting for trends and seasonality. Differencing was applied to ensure stationarity, as confirmed by the Augmented Dickey-Fuller (ADF) and KPSS tests.
+
+- **Augmented Dickey-Fuller (ADF) Test:** -7.0054
+- **KPSS Test:** 4.1877
+
+```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="Monthly UFO Sightings ARIMA Forecast"}
+arima_model <- auto.arima(train_ts)
+arima_forecast <- forecast(arima_model, h = 12)
+autoplot(arima_forecast) +
+  labs(title = "Monthly UFO Sightings ARIMA Forecast", x = "Year", y = "Sightings") +
+  theme_minimal()
+```
+
+## Model Comparison
+
+The models were compared using Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE), calculated on the test set.
+
+```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
+
+mean_mae <- mean(abs(mean_model$mean - test_ts))
+mean_rmse <- sqrt(mean((mean_model$mean - test_ts)^2))
+
+arima_mae <- mean(abs(arima_forecast$mean - test_ts))
+arima_rmse <- sqrt(mean((arima_forecast$mean - test_ts)^2))
+```
+
+```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center'}
+model_comparison <- data.frame(
+  Model = c("Mean Forecast", "ARIMA"),
+  MAE = c(mean_mae, arima_mae),
+  RMSE = c(mean_rmse, arima_rmse)
+)
+
+kable(
+  model_comparison,
+  caption = "Performance Metrics for Mean Forecast and ARIMA"
+)
+```
+
+The ARIMA model outperformed the benchmark model in both MAE and RMSE, demonstrating its ability to account for trends and seasonality.
+
+## Best Model Fit and Forecast
+
+The ARIMA model, selected for its superior performance, was refitted to the entire dataset. Predictions were generated for a 12-month forecast horizon.
+
+```{r echo =FALSE, message=FALSE, out.width="50%", out.height="50%", fig.align = 'center', fig.cap="ARIMA Forecast for Future UFO Sightings"}
+final_arima <- auto.arima(ufo.ts)
+final_forecast <- forecast(final_arima, h = 12)
+autoplot(final_forecast) +
+  labs(title = "ARIMA Forecast for Future UFO Sightings", x = "Year", y = "Sightings") +
   theme_minimal()
 ```
 
 
-
-
-
-
-```{r, echo=FALSE, message = FALSE, results = FALSE, warning=FALSE}
-# Augmented Dickey-Fuller Test
-adf.test(ufo.ts)
-
-# KPSS Test
-kpss.test(ufo.ts)
-```
-For the ADF test, the p-value is very small, so the null hypothesis is rejected, and the time series is stationary.
-
-For the KPSS test, the p-value is very small, so the null hypothesis is rejected, and the time series is not stationary.
-
-These two are contradicting, so we apply differencing.
-
 # References
-- https://nuforc.org/databank/
-- https://www.geeksforgeeks.org/how-to-sort-a-dataframe-by-date-in-r/
-- https://www.esd.whs.mil/Portals/54/Documents/FOID/Reading%20Room/UFOsandUAPs/2d_af_1.pdf
-- https://attheu.utah.edu/facultystaff/the-west-is-best-to-spot-ufos/
+1. https://nuforc.org/databank/
+2. https://www.esd.whs.mil/Portals/54/Documents/FOID/Reading%20Room/UFOsandUAPs/2d_af_1.pdf
+3. https://attheu.utah.edu/facultystaff/the-west-is-best-to-spot-ufos/
 
 
 
